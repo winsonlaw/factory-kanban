@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">生产看板</string>
+    <string name="title_activity_main">生产看板</string>
+    <string name="package_name">com.factory.kanban</string>
+    <string name="custom_url_scheme">com.factory.kanban</string>
+</resources>
