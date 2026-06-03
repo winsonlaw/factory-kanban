@@ -9,12 +9,9 @@ import type { DeviceType } from './wire.js'
 
 interface RemoteCollector {
   collector: { id: string; stationId: string; protocol: string; pollMs: number }
+  deviceType: string
   channel?: { config: Record<string, unknown> }
   points: Array<{ canonicalField: string; address: string }>
-}
-interface RemoteStation {
-  id: string
-  deviceType: string
 }
 
 async function getJson<T>(path: string): Promise<T> {
@@ -23,15 +20,11 @@ async function getJson<T>(path: string): Promise<T> {
   return (await res.json()) as T
 }
 
-/** 拉取并映射为 ModbusProfile[]（仅 modbus_tcp 协议的采集服务）。 */
+/** 拉取并映射为 ModbusProfile[]（仅 modbus_tcp 协议的采集服务）。机器端点，免鉴权。 */
 export async function fetchModbusProfiles(): Promise<ModbusProfile[]> {
-  const [collectors, stations] = await Promise.all([
-    getJson<RemoteCollector[]>(`/api/config/gateway/${config.gatewayId}/collectors`),
-    getJson<RemoteStation[]>(`/api/config/stations`)
-  ])
-  const deviceTypeOf = (stationId: string): DeviceType =>
-    (stations.find((s) => s.id === stationId)?.deviceType as DeviceType) ?? 'generic'
-
+  const collectors = await getJson<RemoteCollector[]>(
+    `/api/config/gateway/${config.gatewayId}/collectors`
+  )
   const profiles: ModbusProfile[] = []
   for (const rc of collectors) {
     if (rc.collector.protocol !== 'modbus_tcp') continue
@@ -53,7 +46,7 @@ export async function fetchModbusProfiles(): Promise<ModbusProfile[]> {
       lineId: lineId ?? '',
       stationId: stationCode,
       deviceId: `DEV-${rc.collector.stationId}`,
-      deviceType: deviceTypeOf(rc.collector.stationId),
+      deviceType: (rc.deviceType as DeviceType) ?? 'generic',
       registers: {
         passCount: reg('passCount'),
         failCount: reg('failCount'),

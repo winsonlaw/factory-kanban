@@ -24,6 +24,7 @@ import {
 import { ApiOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons'
 import { api } from '../api'
 import { useConfig } from '../useConfig'
+import { useAuth } from '../auth'
 import {
   CANONICAL_FIELDS,
   POINT_DATA_TYPES,
@@ -67,6 +68,7 @@ const CHANNEL_FIELDS: Record<ProtocolType, { name: string; label: string; type: 
 export function AcquisitionPage() {
   const { message } = App.useApp()
   const { data, reload } = useConfig()
+  const { canWrite } = useAuth()
   const [colModal, setColModal] = useState<{ mode: 'create' | 'edit'; record?: Collector } | null>(null)
   const [drawer, setDrawer] = useState<Collector | null>(null)
   const [form] = Form.useForm()
@@ -110,7 +112,7 @@ export function AcquisitionPage() {
   return (
     <Card
       title={<span><ApiOutlined /> 采集服务（绑定到站，运行于网关）</span>}
-      extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => openCol({ mode: 'create' })}>新建采集服务</Button>}
+      extra={canWrite ? <Button type="primary" icon={<PlusOutlined />} onClick={() => openCol({ mode: 'create' })}>新建采集服务</Button> : null}
     >
       <Table
         rowKey="id"
@@ -134,10 +136,12 @@ export function AcquisitionPage() {
             render: (_, c: Collector) => (
               <Space>
                 <a onClick={() => setDrawer(c)}><SettingOutlined /> 通讯/数据块</a>
-                <a onClick={() => openCol({ mode: 'edit', record: c })}>编辑</a>
-                <Popconfirm title="确认删除？" onConfirm={() => delCol(c)}>
-                  <a style={{ color: '#ff4d4f' }}>删除</a>
-                </Popconfirm>
+                {canWrite && <a onClick={() => openCol({ mode: 'edit', record: c })}>编辑</a>}
+                {canWrite && (
+                  <Popconfirm title="确认删除？" onConfirm={() => delCol(c)}>
+                    <a style={{ color: '#ff4d4f' }}>删除</a>
+                  </Popconfirm>
+                )}
               </Space>
             )
           }
@@ -159,8 +163,8 @@ export function AcquisitionPage() {
 
       {/* 通讯块 + 数据块抽屉 */}
       <Drawer width={760} open={!!drawer} onClose={() => setDrawer(null)} title={drawer ? `${drawer.name} · 通讯块 / 数据块` : ''} destroyOnClose>
-        {drawer && <ChannelEditor collector={drawer} channels={data.channels} onSaved={reload} />}
-        {drawer && <DataPointEditor collector={drawer} points={data.dataPoints.filter((d) => d.collectorId === drawer.id)} onChanged={reload} />}
+        {drawer && <ChannelEditor collector={drawer} channels={data.channels} canWrite={canWrite} onSaved={reload} />}
+        {drawer && <DataPointEditor collector={drawer} points={data.dataPoints.filter((d) => d.collectorId === drawer.id)} canWrite={canWrite} onChanged={reload} />}
       </Drawer>
     </Card>
   )
@@ -168,7 +172,7 @@ export function AcquisitionPage() {
 
 // ───────────── 通讯块编辑 ─────────────
 
-function ChannelEditor({ collector, channels, onSaved }: { collector: Collector; channels: CommChannel[]; onSaved: () => void }) {
+function ChannelEditor({ collector, channels, canWrite, onSaved }: { collector: Collector; channels: CommChannel[]; canWrite: boolean; onSaved: () => void }) {
   const { message } = App.useApp()
   const existing = useMemo(() => channels.find((c) => c.collectorId === collector.id), [channels, collector.id])
   const [form] = Form.useForm()
@@ -191,13 +195,13 @@ function ChannelEditor({ collector, channels, onSaved }: { collector: Collector;
       {fields.length === 0 ? (
         <span style={{ color: '#888' }}>该协议（仿真）无需连接参数。</span>
       ) : (
-        <Form form={form} layout="inline" initialValues={existing?.config as object}>
+        <Form form={form} layout="inline" initialValues={existing?.config as object} disabled={!canWrite}>
           {fields.map((f) => (
             <Form.Item key={f.name} name={f.name} label={f.label} rules={[{ required: true }]} style={{ marginBottom: 12 }}>
               {f.type === 'number' ? <InputNumber /> : <Input />}
             </Form.Item>
           ))}
-          <Button type="primary" onClick={save}>保存通讯块</Button>
+          {canWrite && <Button type="primary" onClick={save}>保存通讯块</Button>}
         </Form>
       )}
     </Card>
@@ -206,7 +210,7 @@ function ChannelEditor({ collector, channels, onSaved }: { collector: Collector;
 
 // ───────────── 数据块（点表）编辑 ─────────────
 
-function DataPointEditor({ collector, points, onChanged }: { collector: Collector; points: DataPoint[]; onChanged: () => void }) {
+function DataPointEditor({ collector, points, canWrite, onChanged }: { collector: Collector; points: DataPoint[]; canWrite: boolean; onChanged: () => void }) {
   const { message } = App.useApp()
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; record?: DataPoint } | null>(null)
   const [form] = Form.useForm()
@@ -241,7 +245,7 @@ function DataPointEditor({ collector, points, onChanged }: { collector: Collecto
       size="small"
       type="inner"
       title="数据块（点表：寄存器/节点 → canonical 字段）"
-      extra={<Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => open({ mode: 'create' })}>添加点</Button>}
+      extra={canWrite ? <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => open({ mode: 'create' })}>添加点</Button> : null}
     >
       <Table
         rowKey="id"
@@ -255,18 +259,20 @@ function DataPointEditor({ collector, points, onChanged }: { collector: Collecto
           { title: '类型', dataIndex: 'dataType' },
           { title: '缩放', dataIndex: 'scale', width: 60 },
           { title: '模式', dataIndex: 'mode', render: (v) => (v === 'increment' ? '累计取增量' : '直接值') },
-          {
-            title: '操作',
-            width: 110,
-            render: (_, d: DataPoint) => (
-              <Space>
-                <a onClick={() => open({ mode: 'edit', record: d })}>编辑</a>
-                <Popconfirm title="删除该点？" onConfirm={() => del(d)}>
-                  <a style={{ color: '#ff4d4f' }}>删</a>
-                </Popconfirm>
-              </Space>
-            )
-          }
+          ...(canWrite
+            ? [{
+                title: '操作',
+                width: 110,
+                render: (_: unknown, d: DataPoint) => (
+                  <Space>
+                    <a onClick={() => open({ mode: 'edit', record: d })}>编辑</a>
+                    <Popconfirm title="删除该点？" onConfirm={() => del(d)}>
+                      <a style={{ color: '#ff4d4f' }}>删</a>
+                    </Popconfirm>
+                  </Space>
+                )
+              }]
+            : [])
         ]}
       />
       <Modal title="数据块" open={!!modal} onOk={submit} onCancel={() => setModal(null)} destroyOnClose>

@@ -123,9 +123,13 @@ export class ConfigStore {
     return this.data
   }
 
-  /** 某网关下的采集配置（edge-gateway 拉取生效用）。 */
+  /**
+   * 某网关下的采集配置（edge-gateway 拉取生效用，公开机器端点）。
+   * 内联站位 deviceType，使网关无需再请求受保护的 /api/config/stations。
+   */
   collectorsForGateway(gatewayId: string): {
     collector: ConfigData['collectors'][number]
+    deviceType: string
     channel?: ConfigData['channels'][number]
     points: ConfigData['dataPoints']
   }[] {
@@ -133,6 +137,7 @@ export class ConfigStore {
       .filter((c) => c.gatewayId === gatewayId && c.enabled)
       .map((collector) => ({
         collector,
+        deviceType: this.data.stations.find((s) => s.id === collector.stationId)?.deviceType ?? 'generic',
         channel: this.data.channels.find((ch) => ch.collectorId === collector.id),
         points: this.data.dataPoints.filter((d) => d.collectorId === collector.id)
       }))

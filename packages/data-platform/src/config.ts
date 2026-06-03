@@ -66,6 +66,12 @@ export const config = {
   /** 配置库持久化文件（admin-web 配置落盘，免数据库）。 */
   configFile: str('CONFIG_FILE', './data/config.json'),
 
+  /** 鉴权：JWT 签名密钥 + 用户库文件。 */
+  auth: {
+    secret: str('AUTH_SECRET', 'dev-auth-secret-change-me'),
+    file: str('AUTH_FILE', './data/users.json')
+  },
+
   /** 快照计算/推送节流间隔（毫秒）。遥测到达即标脏，按此节流构建并广播。 */
   snapshotIntervalMs: num('SNAPSHOT_INTERVAL_MS', 1000),
 

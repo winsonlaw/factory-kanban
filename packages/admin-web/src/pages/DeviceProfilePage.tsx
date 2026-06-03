@@ -14,10 +14,12 @@ import {
 } from 'antd'
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import { api } from '../api'
+import { useAuth } from '../auth'
 import type { DeviceProfile } from '../types'
 
 export function DeviceProfilePage() {
   const { message } = App.useApp()
+  const { canWrite } = useAuth()
   const [rows, setRows] = useState<DeviceProfile[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<DeviceProfile | null>(null)
@@ -62,9 +64,11 @@ export function DeviceProfilePage() {
     <Card>
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
         <span style={{ fontWeight: 600 }}>设备类型档案（定义专属遥测 metrics）</span>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          新建
-        </Button>
+        {canWrite && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            新建
+          </Button>
+        )}
       </div>
       <Table
         rowKey="key"
@@ -80,18 +84,20 @@ export function DeviceProfilePage() {
             render: (m: DeviceProfile['metrics']) =>
               m.length ? m.map((f) => <Tag key={f.key}>{f.label}{f.unit ? `(${f.unit})` : ''}</Tag>) : <span style={{ color: '#aaa' }}>无</span>
           },
-          {
-            title: '操作',
-            width: 130,
-            render: (_, row: DeviceProfile) => (
-              <Space>
-                <a onClick={() => openEdit(row)}>编辑</a>
-                <Popconfirm title="确认删除？" onConfirm={() => del(row)}>
-                  <a style={{ color: '#ff4d4f' }}>删除</a>
-                </Popconfirm>
-              </Space>
-            )
-          }
+          ...(canWrite
+            ? [{
+                title: '操作',
+                width: 130,
+                render: (_: unknown, row: DeviceProfile) => (
+                  <Space>
+                    <a onClick={() => openEdit(row)}>编辑</a>
+                    <Popconfirm title="确认删除？" onConfirm={() => del(row)}>
+                      <a style={{ color: '#ff4d4f' }}>删除</a>
+                    </Popconfirm>
+                  </Space>
+                )
+              }]
+            : [])
         ]}
       />
 

@@ -14,6 +14,8 @@ import cors from '@fastify/cors'
 import { config } from './config.js'
 import { mesOrderChangeNoticeSchema } from './contracts/schemas.js'
 import { registerConfigApi } from './config-domain/api.js'
+import { registerAuth } from './auth/api.js'
+import { UserStore } from './auth/store.js'
 import type { ConfigStore } from './config-domain/store.js'
 import type { Aggregator } from './state/aggregator.js'
 import type { SnapshotStore } from './storage/snapshot-store.js'
@@ -67,6 +69,9 @@ export class ServerApp {
     await this.fastify.register(websocket)
 
     this.fastify.get('/health', async () => ({ ok: true, ts: Date.now() }))
+
+    // 鉴权：路由守卫 + 登录/用户管理（须在受保护路由之前注册）
+    registerAuth(this.fastify, new UserStore(config.auth.file))
 
     // 配置域 CRUD API（admin-web 管理后台）
     registerConfigApi(this.fastify, this.configStore)

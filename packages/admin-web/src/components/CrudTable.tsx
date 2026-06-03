@@ -20,6 +20,7 @@ import {
 import { PlusOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { api } from '../api'
+import { useAuth } from '../auth'
 import type { EntityKey } from '../types'
 
 export interface FormField {
@@ -60,6 +61,7 @@ export function CrudTable({
   onChanged
 }: Props) {
   const { message } = App.useApp()
+  const { canWrite } = useAuth()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
@@ -147,16 +149,18 @@ export function CrudTable({
     <>
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontWeight: 600 }}>{title}</span>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          新建
-        </Button>
+        {canWrite && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            新建
+          </Button>
+        )}
       </div>
       <Table
         size="middle"
         rowKey={rowKey}
         loading={loading}
         dataSource={shown}
-        columns={[...columns, actionCol]}
+        columns={canWrite ? [...columns, actionCol] : columns}
         pagination={{ pageSize: 10, hideOnSinglePage: true }}
       />
       <Modal

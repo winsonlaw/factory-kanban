@@ -26,6 +26,7 @@ import { ApartmentOutlined, PlusOutlined } from '@ant-design/icons'
 import type { DataNode } from 'antd/es/tree'
 import { api } from '../api'
 import { useConfig } from '../useConfig'
+import { useAuth } from '../auth'
 import type { Line, Station, Workshop } from '../types'
 
 type NodeKind = 'ws' | 'line' | 'st'
@@ -39,6 +40,7 @@ interface EditState {
 export function OrganizationPage() {
   const { message } = App.useApp()
   const { data, reload } = useConfig()
+  const { canWrite } = useAuth()
   const [selected, setSelected] = useState<string | null>(null)
   const [edit, setEdit] = useState<EditState | null>(null)
   const [form] = Form.useForm()
@@ -120,7 +122,7 @@ export function OrganizationPage() {
     <Row gutter={16}>
       <Col span={8}>
         <Card title={<span><ApartmentOutlined /> 资产层级</span>} size="small"
-          extra={<Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => openModal({ kind: 'ws', mode: 'create' })}>车间</Button>}>
+          extra={canWrite ? <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => openModal({ kind: 'ws', mode: 'create' })}>车间</Button> : null}>
           {treeData.length ? (
             <Tree
               treeData={treeData}
@@ -141,6 +143,7 @@ export function OrganizationPage() {
           ) : sel.kind === 'ws' ? (
             <WsDetail
               ws={sel.item as Workshop}
+              canWrite={canWrite}
               lineCount={data.lines.filter((l) => l.workshopId === (sel.item as Workshop).id).length}
               onAddLine={() => openModal({ kind: 'line', mode: 'create', parentId: (sel.item as Workshop).id })}
               onEdit={() => openModal({ kind: 'ws', mode: 'edit', record: sel.item })}
@@ -149,6 +152,7 @@ export function OrganizationPage() {
           ) : sel.kind === 'line' ? (
             <LineDetail
               line={sel.item as Line}
+              canWrite={canWrite}
               stationCount={data.stations.filter((s) => s.lineId === (sel.item as Line).id).length}
               onAddStation={() => openModal({ kind: 'st', mode: 'create', parentId: (sel.item as Line).id })}
               onEdit={() => openModal({ kind: 'line', mode: 'edit', record: sel.item })}
@@ -157,6 +161,7 @@ export function OrganizationPage() {
           ) : (
             <StationDetail
               st={sel.item as Station}
+              canWrite={canWrite}
               profileName={data.deviceProfiles.find((p) => p.key === (sel.item as Station).deviceType)?.name}
               collectorCount={data.collectors.filter((c) => c.stationId === (sel.item as Station).id).length}
               onEdit={() => openModal({ kind: 'st', mode: 'edit', record: sel.item })}
@@ -224,10 +229,10 @@ function Actions({ onEdit, onDel, addLabel, onAdd }: { onEdit: () => void; onDel
   )
 }
 
-function WsDetail({ ws, lineCount, onAddLine, onEdit, onDel }: { ws: Workshop; lineCount: number; onAddLine: () => void; onEdit: () => void; onDel: () => void }) {
+function WsDetail({ ws, canWrite, lineCount, onAddLine, onEdit, onDel }: { ws: Workshop; canWrite: boolean; lineCount: number; onAddLine: () => void; onEdit: () => void; onDel: () => void }) {
   return (
     <>
-      <Actions onEdit={onEdit} onDel={onDel} addLabel="新建产线" onAdd={onAddLine} />
+      {canWrite && <Actions onEdit={onEdit} onDel={onDel} addLabel="新建产线" onAdd={onAddLine} />}
       <Descriptions bordered column={2} size="small">
         <Descriptions.Item label="车间ID">{ws.id}</Descriptions.Item>
         <Descriptions.Item label="名称">{ws.name}</Descriptions.Item>
@@ -238,10 +243,10 @@ function WsDetail({ ws, lineCount, onAddLine, onEdit, onDel }: { ws: Workshop; l
   )
 }
 
-function LineDetail({ line, stationCount, onAddStation, onEdit, onDel }: { line: Line; stationCount: number; onAddStation: () => void; onEdit: () => void; onDel: () => void }) {
+function LineDetail({ line, canWrite, stationCount, onAddStation, onEdit, onDel }: { line: Line; canWrite: boolean; stationCount: number; onAddStation: () => void; onEdit: () => void; onDel: () => void }) {
   return (
     <>
-      <Actions onEdit={onEdit} onDel={onDel} addLabel="新建站位" onAdd={onAddStation} />
+      {canWrite && <Actions onEdit={onEdit} onDel={onDel} addLabel="新建站位" onAdd={onAddStation} />}
       <Descriptions bordered column={2} size="small">
         <Descriptions.Item label="产线ID">{line.id}</Descriptions.Item>
         <Descriptions.Item label="名称">{line.name}</Descriptions.Item>
@@ -253,10 +258,10 @@ function LineDetail({ line, stationCount, onAddStation, onEdit, onDel }: { line:
   )
 }
 
-function StationDetail({ st, profileName, collectorCount, onEdit, onDel }: { st: Station; profileName?: string; collectorCount: number; onEdit: () => void; onDel: () => void }) {
+function StationDetail({ st, canWrite, profileName, collectorCount, onEdit, onDel }: { st: Station; canWrite: boolean; profileName?: string; collectorCount: number; onEdit: () => void; onDel: () => void }) {
   return (
     <>
-      <Actions onEdit={onEdit} onDel={onDel} />
+      {canWrite && <Actions onEdit={onEdit} onDel={onDel} />}
       <Descriptions bordered column={2} size="small">
         <Descriptions.Item label="站位ID">{st.id}</Descriptions.Item>
         <Descriptions.Item label="名称">{st.name}</Descriptions.Item>
