@@ -18,6 +18,7 @@ import { registerAuth } from './auth/api.js'
 import { UserStore } from './auth/store.js'
 import type { ConfigStore } from './config-domain/store.js'
 import type { Aggregator } from './state/aggregator.js'
+import type { HistoryStore } from './state/history.js'
 import type { SnapshotStore } from './storage/snapshot-store.js'
 import type { WorkshopData } from './view/types.js'
 
@@ -31,7 +32,8 @@ export class ServerApp {
   constructor(
     private agg: Aggregator,
     private store: SnapshotStore,
-    private configStore: ConfigStore
+    private configStore: ConfigStore,
+    private history: HistoryStore
   ) {
     this.fastify = Fastify({ logger: false })
   }
@@ -81,6 +83,20 @@ export class ServerApp {
       const data = await this.store.get(id)
       if (!data) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: id } })
       return data
+    })
+
+    // 历史查询（内存实现，待接 TDengine）。与 /api/workshop 同属公开运营数据。
+    this.fastify.get('/api/oee/:lineId', async (req) => {
+      const { lineId } = req.params as { lineId: string }
+      return this.history.lineOee(lineId)
+    })
+    this.fastify.get('/api/shift/summary', async () => this.history.shiftSummary())
+    this.fastify.get('/api/station/history', async (req, reply) => {
+      const { lineId, stationId } = req.query as { lineId?: string; stationId?: string }
+      if (!lineId || !stationId) {
+        return reply.code(400).send({ error: { code: 'BAD_QUERY', message: '需 lineId 与 stationId' } })
+      }
+      return this.history.stationHistory(lineId, stationId)
     })
 
     // MES 工单变更 Webhook（入站，验签）

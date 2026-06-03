@@ -16,6 +16,7 @@ import { MesReporter } from './mes/reporter.js'
 import { createSnapshotStore } from './storage/snapshot-store.js'
 import { ConfigStore } from './config-domain/store.js'
 import { buildWorkshopDef } from './config-domain/to-workshop-def.js'
+import { HistoryStore } from './state/history.js'
 import { ServerApp } from './server-app.js'
 
 async function main(): Promise<void> {
@@ -26,7 +27,8 @@ async function main(): Promise<void> {
   const configStore = new ConfigStore(config.configFile)
   const agg = new Aggregator(buildWorkshopDef(configStore, 'W01'))
   const store = createSnapshotStore()
-  const app = new ServerApp(agg, store, configStore)
+  const history = new HistoryStore()
+  const app = new ServerApp(agg, store, configStore, history)
 
   const mqtt = new MqttIngest(agg)
   mqtt.start()
@@ -51,7 +53,9 @@ async function main(): Promise<void> {
     }
     if (!agg.dirty) return
     agg.dirty = false
-    void app.broadcast(agg.buildSnapshot())
+    const snap = agg.buildSnapshot()
+    history.record(snap)
+    void app.broadcast(snap)
   }, config.snapshotIntervalMs)
 
   const shutdown = async (): Promise<void> => {

@@ -11,6 +11,7 @@ import {
   nextMessageId,
   type AlarmRecord,
   type DefectRecord,
+  type DeviceEvent,
   type DeviceTelemetry
 } from '../wire.js'
 import type { Driver, DriverCallbacks } from './types.js'
@@ -71,7 +72,41 @@ export class SimulatorDriver implements Driver {
       const startDelay = Math.random() * baseInterval
       this.timers.push(setTimeout(loop, startDelay))
     }
+
+    // 换型事件流：周期挑一条产线模拟换型（start → 8s 后 end）
+    this.startChangeoverLoop(cb)
+
     console.log(`[sim] started, ${topology.length} stations, speed=${config.sim.speed}`)
+  }
+
+  private startChangeoverLoop(cb: DriverCallbacks): void {
+    const lines = [...new Set(topology.map((s) => s.lineId))]
+    const models = ['A203-主板', 'B107-控制板', 'C055-电源板', 'E330-传感板', 'D211-接口板']
+    const loop = (): void => {
+      const lineId = pick(lines)
+      const head = topology.find((s) => s.lineId === lineId)!
+      const toModel = pick(models)
+      cb.onEvent(this.mkEvent(head, 'changeover_start', { toModel }))
+      this.timers.push(setTimeout(() => cb.onEvent(this.mkEvent(head, 'changeover_end', { toModel })), 8000))
+      this.timers.push(setTimeout(loop, 20000 + Math.random() * 20000))
+    }
+    this.timers.push(setTimeout(loop, 10000))
+  }
+
+  private mkEvent(s: StationTopo, eventType: DeviceEvent['eventType'], extra: Partial<DeviceEvent>): DeviceEvent {
+    return {
+      schemaVersion: SCHEMA_VERSION,
+      messageId: nextMessageId(),
+      timestamp: Date.now(),
+      factoryId: config.factoryId,
+      zoneId: config.zoneId,
+      lineId: s.lineId,
+      stationId: s.stationId,
+      deviceId: s.deviceId,
+      deviceType: s.deviceType,
+      eventType,
+      ...extra
+    }
   }
 
   private emit(s: StationTopo, cb: DriverCallbacks): void {
