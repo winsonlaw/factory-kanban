@@ -54,6 +54,11 @@ export const deviceTypeSchema = z.enum([
   'wave_solder',
   'ict_fct',
   'laser_marker',
+  'air_conditioner',
+  'th_sensor',
+  'smart_plug',
+  'fresh_air',
+  'lighting',
   'generic'
 ])
 

@@ -47,6 +47,25 @@ const deviceProfiles: DeviceProfile[] = [
     { key: 'waveHeightMm', label: '波峰高度', unit: 'mm', type: 'number' }
   ] },
   { key: 'ict_fct', name: 'ICT/FCT测试', category: '测试', metrics: [] },
+  // —— IoT / 家电 / 智控 ——
+  { key: 'air_conditioner', name: '空调', category: '暖通空调', metrics: [
+    { key: 'tempC', label: '当前温度', unit: '℃', type: 'number' },
+    { key: 'setTempC', label: '设定温度', unit: '℃', type: 'number' },
+    { key: 'mode', label: '模式', type: 'string' },
+    { key: 'powerW', label: '功率', unit: 'W', type: 'number' }
+  ] },
+  { key: 'th_sensor', name: '温湿度传感器', category: '传感器', metrics: [
+    { key: 'tempC', label: '温度', unit: '℃', type: 'number' },
+    { key: 'humidity', label: '湿度', unit: '%', type: 'number' },
+    { key: 'battery', label: '电量', unit: '%', type: 'number' }
+  ] },
+  { key: 'smart_plug', name: '智能插座', category: '家电', metrics: [
+    { key: 'on', label: '通断', type: 'bool' },
+    { key: 'powerW', label: '功率', unit: 'W', type: 'number' },
+    { key: 'energyKwh', label: '累计电量', unit: 'kWh', type: 'number' }
+  ] },
+  { key: 'fresh_air', name: '新风系统', category: '暖通空调', metrics: [] },
+  { key: 'lighting', name: '智能照明', category: '家电', metrics: [] },
   { key: 'generic', name: '通用设备', category: '通用', metrics: [] }
 ]
 

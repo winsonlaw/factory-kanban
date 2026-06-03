@@ -14,7 +14,9 @@ export interface DeviceProfile { key: string; name: string; category: string; me
 
 export interface EdgeGateway { id: string; factoryId: string; workshopId: string; name: string; host?: string; online?: boolean }
 
-export type ProtocolType = 'modbus_tcp' | 'modbus_rtu' | 'opcua' | 'mqtt' | 'siemens_s7' | 'simulator'
+export type ProtocolType =
+  | 'modbus_tcp' | 'modbus_rtu' | 'opcua' | 'mqtt' | 'siemens_s7'
+  | 'tcp' | 'hilink' | 'http' | 'coap' | 'simulator'
 
 export interface Collector {
   id: string
@@ -79,6 +81,10 @@ export const PROTOCOL_LABELS: Record<ProtocolType, string> = {
   opcua: 'OPC-UA',
   mqtt: 'MQTT',
   siemens_s7: 'Siemens S7',
+  tcp: 'TCP 通用',
+  hilink: 'HiLink(华为)',
+  http: 'HTTP/REST',
+  coap: 'CoAP',
   simulator: '仿真'
 }
 

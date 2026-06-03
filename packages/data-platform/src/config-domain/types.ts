@@ -73,11 +73,17 @@ export interface EdgeGateway {
 }
 
 export type ProtocolType =
+  // 工业
   | 'modbus_tcp'
   | 'modbus_rtu'
   | 'opcua'
   | 'mqtt'
   | 'siemens_s7'
+  // 通用 IoT / 家电 / 智控
+  | 'tcp'
+  | 'hilink'
+  | 'http'
+  | 'coap'
   | 'simulator'
 
 export interface ModbusTcpConfig {
@@ -107,6 +113,33 @@ export interface SiemensS7Config {
   rack: number
   slot: number
 }
+/** 通用 TCP：长/短连接 + 可配置报文解析。 */
+export interface TcpConfig {
+  host: string
+  port: number
+  framing: 'delimiter' | 'length' | 'json' // 分隔符 / 定长 / JSON 行
+  delimiter?: string // framing=delimiter 时
+  encoding?: string // utf8 / hex
+}
+/** 华为 HiLink / IoT 生态：以 productId + 设备 SN 标识。 */
+export interface HiLinkConfig {
+  productId: string
+  deviceSn: string
+  region?: string
+  accessToken?: string
+}
+/** HTTP/REST：平台轮询设备/网关接口，或设备主动上报回调。 */
+export interface HttpConfig {
+  url: string
+  method?: 'GET' | 'POST'
+  intervalMs?: number // 轮询周期（主动拉取时）
+  jsonPath?: string // 响应中数据所在路径
+}
+/** CoAP / 轻量物联。 */
+export interface CoapConfig {
+  uri: string // coap://host/path
+  observe?: boolean
+}
 export type SimulatorConfig = Record<string, never>
 
 export interface ChannelConfigMap {
@@ -115,6 +148,10 @@ export interface ChannelConfigMap {
   opcua: OpcuaConfig
   mqtt: MqttConfig
   siemens_s7: SiemensS7Config
+  tcp: TcpConfig
+  hilink: HiLinkConfig
+  http: HttpConfig
+  coap: CoapConfig
   simulator: SimulatorConfig
 }
 

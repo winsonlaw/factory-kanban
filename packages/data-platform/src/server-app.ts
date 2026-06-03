@@ -19,6 +19,7 @@ import { UserStore } from './auth/store.js'
 import type { ConfigStore } from './config-domain/store.js'
 import type { Aggregator } from './state/aggregator.js'
 import type { HistoryStore } from './state/history.js'
+import type { DeviceStateStore } from './state/device-state.js'
 import type { SnapshotStore } from './storage/snapshot-store.js'
 import type { WorkshopData } from './view/types.js'
 
@@ -33,7 +34,8 @@ export class ServerApp {
     private agg: Aggregator,
     private store: SnapshotStore,
     private configStore: ConfigStore,
-    private history: HistoryStore
+    private history: HistoryStore,
+    private deviceState: DeviceStateStore
   ) {
     this.fastify = Fastify({ logger: false })
   }
@@ -91,6 +93,19 @@ export class ServerApp {
       return this.history.lineOee(lineId)
     })
     this.fastify.get('/api/shift/summary', async () => this.history.shiftSummary())
+
+    // 通用 IoT 设备状态（工业+家电+传感统一可查）。公开运营数据。
+    this.fastify.get('/api/devices', async (req) => {
+      const { zoneId, deviceType } = req.query as { zoneId?: string; deviceType?: string }
+      return this.deviceState.list({ zoneId, deviceType })
+    })
+    this.fastify.get('/api/devices/summary', async () => this.deviceState.summary())
+    this.fastify.get('/api/devices/:id', async (req, reply) => {
+      const { id } = req.params as { id: string }
+      const d = this.deviceState.get(id)
+      if (!d) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: id } })
+      return d
+    })
     this.fastify.get('/api/station/history', async (req, reply) => {
       const { lineId, stationId } = req.query as { lineId?: string; stationId?: string }
       if (!lineId || !stationId) {

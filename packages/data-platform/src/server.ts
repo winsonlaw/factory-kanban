@@ -17,6 +17,7 @@ import { createSnapshotStore } from './storage/snapshot-store.js'
 import { ConfigStore } from './config-domain/store.js'
 import { buildWorkshopDef } from './config-domain/to-workshop-def.js'
 import { HistoryStore } from './state/history.js'
+import { DeviceStateStore } from './state/device-state.js'
 import { ServerApp } from './server-app.js'
 
 async function main(): Promise<void> {
@@ -28,9 +29,10 @@ async function main(): Promise<void> {
   const agg = new Aggregator(buildWorkshopDef(configStore, 'W01'))
   const store = createSnapshotStore()
   const history = new HistoryStore()
-  const app = new ServerApp(agg, store, configStore, history)
+  const deviceState = new DeviceStateStore()
+  const app = new ServerApp(agg, store, configStore, history, deviceState)
 
-  const mqtt = new MqttIngest(agg)
+  const mqtt = new MqttIngest(agg, deviceState)
   mqtt.start()
 
   const mes = new MesReporter(createMesAdapter(), agg)

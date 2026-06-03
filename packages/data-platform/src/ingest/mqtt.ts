@@ -9,12 +9,13 @@ import { SUBSCRIPTION } from '../contracts/index.js'
 import type { DeviceEvent, DeviceTelemetry } from '../contracts/index.js'
 import { deviceEventSchema, deviceTelemetrySchema } from '../contracts/schemas.js'
 import type { Aggregator } from '../state/aggregator.js'
+import type { DeviceStateStore } from '../state/device-state.js'
 
 export class MqttIngest {
   private client?: mqtt.MqttClient
   private rejected = 0
 
-  constructor(private agg: Aggregator) {}
+  constructor(private agg: Aggregator, private deviceState: DeviceStateStore) {}
 
   start(): void {
     if (!config.mqtt.enabled) {
@@ -47,8 +48,11 @@ export class MqttIngest {
     }
     if (topic.includes('/telemetry/')) {
       const r = deviceTelemetrySchema.safeParse(json)
-      if (r.success) this.agg.ingestTelemetry(r.data as DeviceTelemetry)
-      else this.rejected++
+      if (r.success) {
+        const t = r.data as DeviceTelemetry
+        this.agg.ingestTelemetry(t) // 工业聚合（OEE）——非产线设备会被忽略
+        this.deviceState.record(t) // 通用设备状态库——所有设备
+      } else this.rejected++
     } else if (topic.includes('/event/')) {
       const r = deviceEventSchema.safeParse(json)
       if (r.success) this.agg.ingestEvent(r.data as DeviceEvent)

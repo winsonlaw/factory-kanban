@@ -4,7 +4,7 @@
  */
 
 import { config } from '../config.js'
-import { topology, type StationTopo } from '../topology.js'
+import { topology, iotDevices, type IotDeviceTopo, type StationTopo } from '../topology.js'
 import {
   EquipmentStatusCode,
   SCHEMA_VERSION,
@@ -76,7 +76,57 @@ export class SimulatorDriver implements Driver {
     // 换型事件流：周期挑一条产线模拟换型（start → 8s 后 end）
     this.startChangeoverLoop(cb)
 
-    console.log(`[sim] started, ${topology.length} stations, speed=${config.sim.speed}`)
+    // IoT 设备遥测（家电/空调/传感）——每 5 秒一帧
+    for (const d of iotDevices) {
+      const loop = (): void => {
+        cb.onTelemetry(this.iotTelemetry(d))
+        this.timers.push(setTimeout(loop, 4000 + Math.random() * 3000))
+      }
+      this.timers.push(setTimeout(loop, Math.random() * 4000))
+    }
+
+    console.log(`[sim] started, ${topology.length} stations + ${iotDevices.length} IoT devices, speed=${config.sim.speed}`)
+  }
+
+  private iotTelemetry(d: IotDeviceTopo): DeviceTelemetry {
+    const now = Date.now()
+    const rnd = (base: number, amp: number) => Math.round((base + (Math.random() - 0.5) * amp) * 10) / 10
+    let metrics: Record<string, unknown> = {}
+    let status = EquipmentStatusCode.Running
+    switch (d.deviceType) {
+      case 'air_conditioner':
+        metrics = { tempC: rnd(24, 3), setTempC: 24, mode: 'cool', fanSpeed: 'auto', powerW: Math.round(rnd(800, 400)), humidity: rnd(52, 12), on: true }
+        break
+      case 'th_sensor':
+        metrics = { tempC: rnd(25, 4), humidity: rnd(55, 16), battery: 80 + Math.round(Math.random() * 20) }
+        status = EquipmentStatusCode.Idle // 传感器无「运行」概念
+        break
+      case 'smart_plug':
+        metrics = { on: true, powerW: Math.round(rnd(120, 80)), energyKwh: rnd(34, 1), voltage: rnd(220, 6) }
+        break
+      case 'fresh_air':
+        metrics = { on: true, co2Ppm: Math.round(rnd(650, 200)), fanLevel: 2 }
+        break
+      case 'lighting':
+        metrics = { on: Math.random() > 0.3, brightness: Math.round(rnd(70, 40)) }
+        break
+    }
+    return {
+      schemaVersion: SCHEMA_VERSION,
+      messageId: nextMessageId(),
+      timestamp: now,
+      factoryId: config.factoryId,
+      zoneId: d.zoneId,
+      lineId: d.lineId,
+      stationId: d.stationId,
+      deviceId: d.deviceId,
+      deviceType: d.deviceType,
+      passCount: 0,
+      failCount: 0,
+      cycleTimeMs: 0,
+      equipmentStatus: status,
+      metrics
+    }
   }
 
   private startChangeoverLoop(cb: DriverCallbacks): void {

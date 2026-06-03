@@ -35,7 +35,10 @@ import {
   type ProtocolType
 } from '../types'
 
-const PROTOCOLS: ProtocolType[] = ['modbus_tcp', 'modbus_rtu', 'opcua', 'mqtt', 'siemens_s7', 'simulator']
+const PROTOCOLS: ProtocolType[] = [
+  'modbus_tcp', 'modbus_rtu', 'opcua', 'mqtt', 'siemens_s7',
+  'tcp', 'hilink', 'http', 'coap', 'simulator'
+]
 
 /** 各协议的连接参数字段。 */
 const CHANNEL_FIELDS: Record<ProtocolType, { name: string; label: string; type: 'text' | 'number' }[]> = {
@@ -61,6 +64,23 @@ const CHANNEL_FIELDS: Record<ProtocolType, { name: string; label: string; type: 
     { name: 'host', label: '主机IP', type: 'text' },
     { name: 'rack', label: 'Rack', type: 'number' },
     { name: 'slot', label: 'Slot', type: 'number' }
+  ],
+  tcp: [
+    { name: 'host', label: '主机IP', type: 'text' },
+    { name: 'port', label: '端口', type: 'number' },
+    { name: 'delimiter', label: '帧分隔符', type: 'text' }
+  ],
+  hilink: [
+    { name: 'productId', label: 'ProductId', type: 'text' },
+    { name: 'deviceSn', label: '设备SN', type: 'text' },
+    { name: 'region', label: '区域', type: 'text' }
+  ],
+  http: [
+    { name: 'url', label: '接口URL', type: 'text' },
+    { name: 'intervalMs', label: '轮询周期(ms)', type: 'number' }
+  ],
+  coap: [
+    { name: 'uri', label: 'CoAP URI', type: 'text' }
   ],
   simulator: []
 }

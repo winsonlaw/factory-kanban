@@ -14,8 +14,12 @@ import type { AlarmRecord, AssetRef, DefectRecord, EquipmentStatusCode, MessageE
 
 // ───────────────────────────── 设备类型 ─────────────────────────────
 
-/** 支持的设备类型。新增设备类型时：加枚举值 + 加一个 *Metrics + 加一个 *Telemetry 分支。 */
+/**
+ * 支持的设备类型。新增设备类型时：加枚举值 + 加一个 *Metrics + 加 DeviceMetricsMap 条目。
+ * 工业类 + IoT 类（家电/暖通/传感/智控）并存——同一套 canonical 管道。
+ */
 export type DeviceType =
+  // —— 工业 ——
   | 'solder_printer' // 锡膏印刷机
   | 'smt_mounter' // 贴片机（Pick & Place）
   | 'reflow_oven' // 回流焊
@@ -25,6 +29,12 @@ export type DeviceType =
   | 'wave_solder' // 波峰焊
   | 'ict_fct' // ICT / FCT 测试
   | 'laser_marker' // 激光打标
+  // —— IoT / 家电 / 智控 ——
+  | 'air_conditioner' // 空调
+  | 'th_sensor' // 温湿度传感器
+  | 'smart_plug' // 智能插座
+  | 'fresh_air' // 新风
+  | 'lighting' // 智能照明
   | 'generic' // 通用 / 未适配设备（用 GenericMetrics 兜底）
 
 // ───────────────────────── 各设备类型专属遥测 ─────────────────────────
@@ -94,6 +104,34 @@ export interface GenericMetrics {
   [key: string]: number | string | boolean | null
 }
 
+// —— IoT 设备遥测 ——
+
+/** 空调 */
+export interface AirConditionerMetrics {
+  tempC?: number // 当前温度
+  setTempC?: number // 设定温度
+  mode?: 'cool' | 'heat' | 'dry' | 'fan' | 'auto'
+  fanSpeed?: 'low' | 'mid' | 'high' | 'auto'
+  powerW?: number // 实时功率
+  humidity?: number // 湿度 %
+  on?: boolean
+}
+
+/** 温湿度传感器 */
+export interface ThSensorMetrics {
+  tempC?: number
+  humidity?: number
+  battery?: number // 电量 %
+}
+
+/** 智能插座 */
+export interface SmartPlugMetrics {
+  on?: boolean
+  powerW?: number
+  energyKwh?: number // 累计电量
+  voltage?: number
+}
+
 // ──────────────────────── canonical 遥测信封 ────────────────────────
 
 /** 所有设备遥测的公共字段（每次过机/周期上报）。 */
@@ -125,6 +163,11 @@ export interface DeviceMetricsMap {
   wave_solder: WaveSolderMetrics
   ict_fct: IctFctMetrics
   laser_marker: GenericMetrics
+  air_conditioner: AirConditionerMetrics
+  th_sensor: ThSensorMetrics
+  smart_plug: SmartPlugMetrics
+  fresh_air: GenericMetrics
+  lighting: GenericMetrics
   generic: GenericMetrics
 }
 

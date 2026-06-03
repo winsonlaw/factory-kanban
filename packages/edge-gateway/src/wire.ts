@@ -26,6 +26,12 @@ export type DeviceType =
   | 'wave_solder'
   | 'ict_fct'
   | 'laser_marker'
+  // IoT / 家电 / 智控
+  | 'air_conditioner'
+  | 'th_sensor'
+  | 'smart_plug'
+  | 'fresh_air'
+  | 'lighting'
   | 'generic'
 
 export interface DefectRecord {

@@ -125,13 +125,16 @@ GET /api/oee/:lineId       OEE 计算结果
 
 ---
 
-## 边缘网关 (`edge-gateway`)
+## 边缘网关 (`edge-gateway`) — 通用 IoT 接入
 
-- 支持协议：Modbus TCP/RTU、OPC-UA、MQTT、RS485
-- 离线缓冲：断网时本地存储 30 分钟数据，恢复后自动补传
-- 采集频率：每次过机推送一条，包含节拍时间、良废品数、设备状态、缺陷代码
-- 兼容设计：不同设备类型统一成一套 canonical 消息，协议差异由「设备 Profile」吸收
-- 内置 `simulator` 驱动，无需真实 PLC 即可仿真整车间数据流
+> 不止工业设备：同一套 canonical 管道也接**家电 / 空调 / 传感 / 智控**，工业+IoT 并存。
+
+- 支持协议：Modbus、**TCP 通用**、OPC-UA、MQTT、**HiLink（华为）**、**HTTP/REST**、**CoAP**、RS485
+- 设备类型：工业（贴片/回流焊/AOI…）+ IoT（空调/温湿度/智能插座/新风/照明…）
+- 离线缓冲：断网本地存储 30 分钟，恢复自动补传
+- 兼容设计：协议差异由「设备 Profile / 通讯块」吸收，新增设备类型只加配置
+- 内置 `simulator` 驱动，无需真实硬件即可仿真工厂 + IoT 楼宇数据流
+- 通用设备状态统一进 `GET /api/devices`（工业设备另进 OEE 聚合）
 
 ---
 
