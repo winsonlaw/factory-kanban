@@ -80,6 +80,19 @@ services:
       postgres:
         condition: service_healthy
 
+  # 管理后台（nginx 托管静态资源；浏览器直连 data-platform 的 CORS API）
+  admin-web:
+    build:
+      context: ../packages/admin-web
+      dockerfile: ../../docker/Dockerfile.admin-web
+      args:
+        VITE_API_BASE: http://localhost:8080
+    container_name: fk-admin-web
+    ports:
+      - '8081:80'
+    depends_on:
+      - data-platform
+
   # 仿真边缘网关：演示用；接真实设备时删除本服务
   edge-gateway:
     build:

@@ -24,6 +24,9 @@ export const config = {
     password: process.env.MQTT_PASSWORD
   },
 
+  /** data-platform 地址：modbus 模式从此拉取本网关的采集配置（通讯块/数据块）。 */
+  dataPlatformUrl: str('DATA_PLATFORM_URL', 'http://localhost:8080'),
+
   /** 仿真节奏：节拍缩放（<1 加速演示）。1 = 真实节拍 */
   sim: {
     speed: num('SIM_SPEED', 0.05), // 默认加速 20 倍，便于观察

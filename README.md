@@ -25,7 +25,7 @@
 factory-kanban/
 ├── packages/
 │   ├── display-app/        # 大屏展示应用（Electron + Capacitor）
-│   ├── admin-web/          # 管理后台（Web）
+│   ├── admin-web/          # 管理后台（React + Ant Design）
 │   ├── data-platform/      # 中心数据平台（Node.js + Fastify）
 │   └── edge-gateway/       # 边缘采集服务
 ├── docker/                 # Docker Compose 一键部署
@@ -146,9 +146,11 @@ npm start
 cd packages/edge-gateway && npm install && SIM_SPEED=0.05 npm start
 # 大屏接入实时后端
 cd packages/display-app && VITE_WS_URL=ws://localhost:8080/ws/workshop/W01 npm run dev
+# 管理后台（配置产线/站位/采集服务/通讯块/数据块）
+cd packages/admin-web && npm install && npm run dev   # http://localhost:5174
 ```
 
-详见 [docs/后端运行指南.md](docs/后端运行指南.md)。
+详见 [docs/后端运行指南.md](docs/后端运行指南.md)、[docs/管理后台设计.md](docs/管理后台设计.md)。
 
 ---
 
@@ -184,6 +186,7 @@ docker compose up -d
 | [看板信息架构设计](docs/看板信息架构设计.md) | 四角色视图、指标词典、信息分层 |
 | [数据采集清单与数据结构](docs/数据采集清单与数据结构.md) | 全系统数据来源、清单、结构、存储分布 |
 | [对外接口与通道设计](docs/对外接口与通道设计.md) | 南向设备接入 + MES 对接（REST+Webhook）规范 |
+| [管理后台设计](docs/管理后台设计.md) | 实体关系、领域划分、配置 API、admin-web 模块 |
 | [后端运行指南](docs/后端运行指南.md) | 本地仿真 / Docker 部署 / 环境变量 / 接口 |
 
 ---

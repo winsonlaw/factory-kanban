@@ -6,6 +6,7 @@ import { config } from './config.js'
 import { Publisher } from './publisher.js'
 import { SimulatorDriver } from './drivers/simulator.js'
 import { ModbusDriver } from './drivers/modbus.js'
+import { fetchModbusProfiles } from './config-fetch.js'
 import type { Driver } from './drivers/types.js'
 
 async function main(): Promise<void> {
@@ -17,9 +18,15 @@ async function main(): Promise<void> {
 
   let driver: Driver
   if (config.mode === 'modbus') {
-    // 真实环境：从 profileDir 加载各设备 Profile。此处留空示例，按现场补充。
-    console.warn('[boot] modbus 模式需配置设备 Profile（见 src/drivers/modbus.ts）')
-    driver = new ModbusDriver([])
+    // 从 data-platform 拉取本网关的采集配置（admin-web 所配），构建 Modbus Profile
+    let profiles: Awaited<ReturnType<typeof fetchModbusProfiles>> = []
+    try {
+      profiles = await fetchModbusProfiles()
+      console.log(`[boot] loaded ${profiles.length} modbus profiles from config`)
+    } catch (err) {
+      console.warn('[boot] 拉取采集配置失败，modbus profiles 为空:', (err as Error).message)
+    }
+    driver = new ModbusDriver(profiles)
   } else {
     driver = new SimulatorDriver()
   }

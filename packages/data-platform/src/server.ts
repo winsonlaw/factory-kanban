@@ -9,21 +9,24 @@
  */
 
 import { config } from './config.js'
-import { workshopDef } from './masterdata.js'
 import { Aggregator } from './state/aggregator.js'
 import { MqttIngest } from './ingest/mqtt.js'
 import { createMesAdapter } from './mes/adapter.js'
 import { MesReporter } from './mes/reporter.js'
 import { createSnapshotStore } from './storage/snapshot-store.js'
+import { ConfigStore } from './config-domain/store.js'
+import { buildWorkshopDef } from './config-domain/to-workshop-def.js'
 import { ServerApp } from './server-app.js'
 
 async function main(): Promise<void> {
   console.log('[boot] factory-kanban data-platform starting…')
   console.log(`[boot] storage=${config.storage} mes=${config.mes.mode} mqtt=${config.mqtt.enabled}`)
 
-  const agg = new Aggregator(workshopDef)
+  // 配置库（admin-web 管理）→ 构建运行时车间拓扑，使后台配置启动即生效
+  const configStore = new ConfigStore(config.configFile)
+  const agg = new Aggregator(buildWorkshopDef(configStore, 'W01'))
   const store = createSnapshotStore()
-  const app = new ServerApp(agg, store)
+  const app = new ServerApp(agg, store, configStore)
 
   const mqtt = new MqttIngest(agg)
   mqtt.start()

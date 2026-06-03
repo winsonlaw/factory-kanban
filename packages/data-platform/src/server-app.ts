@@ -10,8 +10,11 @@
 import crypto from 'node:crypto'
 import Fastify, { type FastifyInstance } from 'fastify'
 import websocket from '@fastify/websocket'
+import cors from '@fastify/cors'
 import { config } from './config.js'
 import { mesOrderChangeNoticeSchema } from './contracts/schemas.js'
+import { registerConfigApi } from './config-domain/api.js'
+import type { ConfigStore } from './config-domain/store.js'
 import type { Aggregator } from './state/aggregator.js'
 import type { SnapshotStore } from './storage/snapshot-store.js'
 import type { WorkshopData } from './view/types.js'
@@ -23,7 +26,11 @@ export class ServerApp {
   private fastify: FastifyInstance
   private subscribers = new Map<string, Set<Socket>>()
 
-  constructor(private agg: Aggregator, private store: SnapshotStore) {
+  constructor(
+    private agg: Aggregator,
+    private store: SnapshotStore,
+    private configStore: ConfigStore
+  ) {
     this.fastify = Fastify({ logger: false })
   }
 
@@ -56,9 +63,13 @@ export class ServerApp {
   }
 
   async listen(): Promise<void> {
+    await this.fastify.register(cors, { origin: true }) // admin-web 跨域访问
     await this.fastify.register(websocket)
 
     this.fastify.get('/health', async () => ({ ok: true, ts: Date.now() }))
+
+    // 配置域 CRUD API（admin-web 管理后台）
+    registerConfigApi(this.fastify, this.configStore)
 
     this.fastify.get('/api/workshop/:id', async (req, reply) => {
       const { id } = req.params as { id: string }

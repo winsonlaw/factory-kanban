@@ -31,6 +31,58 @@ CREATE TABLE IF NOT EXISTS station (
   PRIMARY KEY (line_id, id)
 );
 
+-- ───────────── 设备域：设备类型档案 ─────────────
+CREATE TABLE IF NOT EXISTS device_profile (
+  key       TEXT PRIMARY KEY,        -- reflow_oven / smt_mounter ...
+  name      TEXT NOT NULL,
+  category  TEXT NOT NULL,
+  metrics   JSONB NOT NULL DEFAULT '[]'  -- MetricField[]
+);
+
+-- ───────────── 采集域：网关 / 采集服务 / 通讯块 / 数据块 ─────────────
+CREATE TABLE IF NOT EXISTS edge_gateway (
+  id          TEXT PRIMARY KEY,
+  factory_id  TEXT NOT NULL REFERENCES factory(id),
+  workshop_id TEXT NOT NULL REFERENCES zone(id),
+  name        TEXT NOT NULL,
+  host        TEXT
+);
+
+-- 采集服务：绑定到站，运行于某网关
+CREATE TABLE IF NOT EXISTS collector (
+  id          TEXT PRIMARY KEY,
+  station_id  TEXT NOT NULL,           -- 组合键 line_id-station_id
+  gateway_id  TEXT NOT NULL REFERENCES edge_gateway(id),
+  name        TEXT NOT NULL,
+  protocol    TEXT NOT NULL,           -- modbus_tcp / opcua / mqtt / simulator ...
+  poll_ms     INT  NOT NULL DEFAULT 1000,
+  enabled     BOOLEAN NOT NULL DEFAULT TRUE
+);
+CREATE INDEX IF NOT EXISTS idx_collector_gw ON collector(gateway_id);
+CREATE INDEX IF NOT EXISTS idx_collector_station ON collector(station_id);
+
+-- 通讯块：挂钩采集服务的协议连接参数
+CREATE TABLE IF NOT EXISTS comm_channel (
+  id           TEXT PRIMARY KEY,
+  collector_id TEXT NOT NULL REFERENCES collector(id) ON DELETE CASCADE,
+  protocol     TEXT NOT NULL,
+  config       JSONB NOT NULL DEFAULT '{}'  -- 协议专属：host/port/unitId / endpoint / brokerUrl ...
+);
+
+-- 数据块（点表）：寄存器/节点 → canonical 字段
+CREATE TABLE IF NOT EXISTS data_point (
+  id              TEXT PRIMARY KEY,
+  collector_id    TEXT NOT NULL REFERENCES collector(id) ON DELETE CASCADE,
+  name            TEXT NOT NULL,
+  canonical_field TEXT NOT NULL,       -- passCount / failCount / cycleTimeMs / metrics.xxx
+  address         TEXT NOT NULL,       -- 寄存器地址 / NodeId / JSON path
+  data_type       TEXT NOT NULL,       -- uint16 / int32 / float32 / bool ...
+  scale           NUMERIC NOT NULL DEFAULT 1,
+  mode            TEXT NOT NULL DEFAULT 'value',  -- value / increment
+  func_code       INT
+);
+CREATE INDEX IF NOT EXISTS idx_dp_collector ON data_point(collector_id);
+
 -- ───────────── 📋 班次 / 目标 / 字典 / 成本 ─────────────
 CREATE TABLE IF NOT EXISTS shift (
   id           TEXT PRIMARY KEY,
