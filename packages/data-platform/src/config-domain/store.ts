@@ -24,6 +24,8 @@ function pk(entity: EntityKey): string {
 
 export class ConfigStore {
   private data: ConfigData
+  private ready = false
+  private listeners: Array<() => void> = []
 
   constructor(private file?: string) {
     if (file && existsSync(file)) {
@@ -37,16 +39,24 @@ export class ConfigStore {
       this.data = buildSeed()
       this.persist()
     }
+    this.ready = true
+  }
+
+  /** 订阅配置变更（任何写操作后触发），用于运行时热重载。 */
+  onChange(cb: () => void): void {
+    this.listeners.push(cb)
   }
 
   private persist(): void {
-    if (!this.file) return
-    try {
-      mkdirSync(dirname(this.file), { recursive: true })
-      writeFileSync(this.file, JSON.stringify(this.data, null, 2))
-    } catch (err) {
-      console.error('[config] persist failed:', (err as Error).message)
+    if (this.file) {
+      try {
+        mkdirSync(dirname(this.file), { recursive: true })
+        writeFileSync(this.file, JSON.stringify(this.data, null, 2))
+      } catch (err) {
+        console.error('[config] persist failed:', (err as Error).message)
+      }
     }
+    if (this.ready) for (const cb of this.listeners) cb()
   }
 
   // ───────────── 通用 CRUD ─────────────

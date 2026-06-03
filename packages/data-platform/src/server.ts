@@ -36,8 +36,19 @@ async function main(): Promise<void> {
 
   await app.listen()
 
+  // 配置热重载：admin-web 改配置后标脏，下一个 tick 就地调谐运行时拓扑（免重启）
+  let topoDirty = false
+  configStore.onChange(() => {
+    topoDirty = true
+  })
+
   // 快照计算 + 广播节流循环
   const tick = setInterval(() => {
+    if (topoDirty) {
+      topoDirty = false
+      agg.applyTopology(buildWorkshopDef(configStore, 'W01'))
+      console.log('[config] topology hot-reloaded')
+    }
     if (!agg.dirty) return
     agg.dirty = false
     void app.broadcast(agg.buildSnapshot())

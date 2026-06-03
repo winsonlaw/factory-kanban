@@ -63,6 +63,24 @@ function clamp01(v: number): number {
   return v > 1 ? 1 : v
 }
 
+/** 新建一个站位的空运行状态。 */
+function initStation(def: StationDef): StationState {
+  return {
+    def,
+    status: EquipmentStatusCode.Idle,
+    passCount: 0,
+    failCount: 0,
+    lastCycleMs: def.stdCycleMs,
+    wipBuffer: 0,
+    defects: new Map(),
+    consecutiveFail: 0,
+    hourCounts: new Map(),
+    runningMs: 0,
+    observeStartMs: 0,
+    lastTs: Date.now()
+  }
+}
+
 function hhmmss(ts: number): string {
   const d = new Date(ts)
   return [d.getHours(), d.getMinutes(), d.getSeconds()]
@@ -83,24 +101,40 @@ export class Aggregator {
     this.monthBaseActual = def.monthTarget - 9240 // 让本月累计起点接近目标
     for (const line of def.lines) {
       const stations = new Map<string, StationState>()
-      for (const s of line.stations) {
-        stations.set(s.id, {
-          def: s,
-          status: EquipmentStatusCode.Idle,
-          passCount: 0,
-          failCount: 0,
-          lastCycleMs: s.stdCycleMs,
-          wipBuffer: 0,
-          defects: new Map(),
-          consecutiveFail: 0,
-          hourCounts: new Map(),
-          runningMs: 0,
-          observeStartMs: 0,
-          lastTs: Date.now()
-        })
-      }
+      for (const s of line.stations) stations.set(s.id, initStation(s))
       this.lines.set(line.id, { def: line, stations, alarms: new Map(), trend: [] })
     }
+  }
+
+  /**
+   * 热重载 —— 按新拓扑（admin-web 改后的配置）就地调谐运行时状态：
+   * 新增的产线/站位建空状态，删除的移除，存活的更新定义（Takt/目标/名称/标准节拍）
+   * 并**保留已累计的生产计数**。无需重启即可生效。
+   */
+  applyTopology(def: WorkshopDef): void {
+    this.def = def
+    const seenLines = new Set<string>()
+    for (const lineDef of def.lines) {
+      seenLines.add(lineDef.id)
+      let ls = this.lines.get(lineDef.id)
+      if (!ls) {
+        const stations = new Map<string, StationState>()
+        for (const s of lineDef.stations) stations.set(s.id, initStation(s))
+        this.lines.set(lineDef.id, { def: lineDef, stations, alarms: new Map(), trend: [] })
+        continue
+      }
+      ls.def = lineDef // 更新 Takt/目标/名称
+      const seenStations = new Set<string>()
+      for (const sDef of lineDef.stations) {
+        seenStations.add(sDef.id)
+        const st = ls.stations.get(sDef.id)
+        if (!st) ls.stations.set(sDef.id, initStation(sDef))
+        else st.def = sDef // 更新名称/标准节拍/设备类型，保留计数
+      }
+      for (const id of [...ls.stations.keys()]) if (!seenStations.has(id)) ls.stations.delete(id)
+    }
+    for (const id of [...this.lines.keys()]) if (!seenLines.has(id)) this.lines.delete(id)
+    this.dirty = true
   }
 
   // ───────────── 摄入 ─────────────
