@@ -75,6 +75,26 @@ export interface ConfigData {
 
 export type EntityKey = keyof ConfigData
 
+/** 通用设备实时状态（来自 /api/devices，工业+IoT）。 */
+export interface DeviceState {
+  deviceId: string
+  deviceType: string
+  factoryId: string
+  zoneId: string
+  lineId: string
+  stationId: string
+  status: string
+  online: boolean
+  lastTs: number
+  metrics: Record<string, unknown>
+}
+
+export interface DeviceSummary {
+  total: number
+  online: number
+  byType: Record<string, number>
+}
+
 export const PROTOCOL_LABELS: Record<ProtocolType, string> = {
   modbus_tcp: 'Modbus TCP',
   modbus_rtu: 'Modbus RTU',

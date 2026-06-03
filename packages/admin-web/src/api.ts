@@ -3,7 +3,7 @@
  * 基址由 VITE_API_BASE 配置，默认 http://localhost:8080。
  */
 
-import type { ConfigData, EntityKey } from './types'
+import type { ConfigData, DeviceState, DeviceSummary, EntityKey } from './types'
 import { getToken, type AuthUser } from './auth'
 
 const BASE =
@@ -28,6 +28,17 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error((body as { error?: { message?: string } })?.error?.message ?? `HTTP ${res.status}`)
   }
   return res.json() as Promise<T>
+}
+
+export const deviceApi = {
+  list: (q?: { zoneId?: string; deviceType?: string }) => {
+    const p = new URLSearchParams()
+    if (q?.zoneId) p.set('zoneId', q.zoneId)
+    if (q?.deviceType) p.set('deviceType', q.deviceType)
+    const qs = p.toString()
+    return req<DeviceState[]>(`/api/devices${qs ? `?${qs}` : ''}`)
+  },
+  summary: () => req<DeviceSummary>('/api/devices/summary')
 }
 
 export const authApi = {

@@ -7,9 +7,11 @@ import {
   BookOutlined,
   ScheduleOutlined,
   TeamOutlined,
+  DashboardOutlined,
   LogoutOutlined,
   UserOutlined
 } from '@ant-design/icons'
+import { DeviceOverviewPage } from './pages/DeviceOverviewPage'
 import { OrganizationPage } from './pages/OrganizationPage'
 import { AcquisitionPage } from './pages/AcquisitionPage'
 import { DeviceProfilePage } from './pages/DeviceProfilePage'
@@ -22,9 +24,10 @@ import { ROLE_LABELS, useAuth } from './auth'
 const { Sider, Header, Content } = Layout
 const { Title } = Typography
 
-type ModuleKey = 'org' | 'acquisition' | 'device' | 'dict' | 'production' | 'users'
+type ModuleKey = 'overview' | 'org' | 'acquisition' | 'device' | 'dict' | 'production' | 'users'
 
 const BASE_MENU = [
+  { key: 'overview', icon: <DashboardOutlined />, label: '设备总览' },
   { key: 'org', icon: <ApartmentOutlined />, label: '组织架构' },
   { key: 'acquisition', icon: <ApiOutlined />, label: '采集服务' },
   { key: 'device', icon: <HddOutlined />, label: '设备类型' },
@@ -34,7 +37,7 @@ const BASE_MENU = [
 
 export function App() {
   const { user, isAdmin, logout } = useAuth()
-  const [active, setActive] = useState<ModuleKey>('org')
+  const [active, setActive] = useState<ModuleKey>('overview')
 
   if (!user) return <LoginPage />
 
@@ -63,6 +66,7 @@ export function App() {
           </Dropdown>
         </Header>
         <Content style={{ padding: 20, overflow: 'auto', background: '#f5f6fa' }}>
+          {active === 'overview' && <DeviceOverviewPage />}
           {active === 'org' && <OrganizationPage />}
           {active === 'acquisition' && <AcquisitionPage />}
           {active === 'device' && <DeviceProfilePage />}
