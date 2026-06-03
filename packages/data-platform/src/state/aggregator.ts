@@ -96,8 +96,8 @@ export class Aggregator {
   dirty = true
 
   constructor(private def: WorkshopDef) {
-    // 班次开始设为「现在往前 plannedRuntime 的一半」，让 Pacing 一启动就有意义
-    this.shiftStartTs = Date.now() - def.plannedRuntimeMs / 2
+    // 班次开始 = 平台启动时刻（实时系统视为新班次起点；产量与应产从 0 同步增长）
+    this.shiftStartTs = Date.now()
     this.monthBaseActual = def.monthTarget - 9240 // 让本月累计起点接近目标
     for (const line of def.lines) {
       const stations = new Map<string, StationState>()
