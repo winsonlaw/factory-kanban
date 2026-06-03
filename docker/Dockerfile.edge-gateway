@@ -1,0 +1,13 @@
+# 边缘网关镜像。构建上下文 = packages/edge-gateway。
+# 现场部署时跑在车间工控机/树莓派上；此镜像默认 simulator 模式用于演示。
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package.json ./
+# 默认不装可选的 modbus-serial；需真实 Modbus 时去掉 --omit=optional
+RUN npm install --omit=optional --no-audit --no-fund
+
+COPY . .
+
+ENV NODE_ENV=production
+CMD ["npm", "start"]

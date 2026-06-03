@@ -1,0 +1,14 @@
+# 中心数据平台镜像。构建上下文 = packages/data-platform。
+FROM node:20-alpine
+WORKDIR /app
+
+# 先装依赖（利用缓存）
+COPY package.json ./
+RUN npm install --omit=optional --no-audit --no-fund
+
+# 拷贝源码（用 tsx 直接运行 TS；生产可改为 npm run build + node dist）
+COPY . .
+
+ENV NODE_ENV=production
+EXPOSE 8080
+CMD ["npm", "start"]

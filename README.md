@@ -130,6 +130,25 @@ GET /api/oee/:lineId       OEE 计算结果
 - 支持协议：Modbus TCP/RTU、OPC-UA、MQTT、RS485
 - 离线缓冲：断网时本地存储 30 分钟数据，恢复后自动补传
 - 采集频率：每次过机推送一条，包含节拍时间、良废品数、设备状态、缺陷代码
+- 兼容设计：不同设备类型统一成一套 canonical 消息，协议差异由「设备 Profile」吸收
+- 内置 `simulator` 驱动，无需真实 PLC 即可仿真整车间数据流
+
+---
+
+## 快速运行（仿真，零基础设施）
+
+```bash
+# 终端1：内置 MQTT broker
+cd packages/data-platform && npm install && npm run broker
+# 终端2：中心数据平台（http/ws :8080）
+npm start
+# 终端3：仿真边缘网关
+cd packages/edge-gateway && npm install && SIM_SPEED=0.05 npm start
+# 大屏接入实时后端
+cd packages/display-app && VITE_WS_URL=ws://localhost:8080/ws/workshop/W01 npm run dev
+```
+
+详见 [docs/后端运行指南.md](docs/后端运行指南.md)。
 
 ---
 
@@ -152,8 +171,20 @@ Q = 良品数 / 总产出数
 ```bash
 cd docker
 docker compose up -d
-# 启动 EMQX · TDengine · PostgreSQL · Redis · API Server · Admin Web
+# 启动 EMQX · TDengine · PostgreSQL · Redis · data-platform · 仿真 edge-gateway
 ```
+
+---
+
+## 设计文档
+
+| 文档 | 内容 |
+|------|------|
+| [产品规划方案](docs/产品规划方案.md) | 完整系统规划、分层架构、里程碑 |
+| [看板信息架构设计](docs/看板信息架构设计.md) | 四角色视图、指标词典、信息分层 |
+| [数据采集清单与数据结构](docs/数据采集清单与数据结构.md) | 全系统数据来源、清单、结构、存储分布 |
+| [对外接口与通道设计](docs/对外接口与通道设计.md) | 南向设备接入 + MES 对接（REST+Webhook）规范 |
+| [后端运行指南](docs/后端运行指南.md) | 本地仿真 / Docker 部署 / 环境变量 / 接口 |
 
 ---
 

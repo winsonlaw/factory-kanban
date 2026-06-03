@@ -1,0 +1,103 @@
+# 工厂生产看板 —— 中心平台一键部署。
+#   docker compose up -d
+# 默认带一个仿真边缘网关（edge-gateway），启动后即有数据流；
+# 接入真实设备时移除 edge-gateway 服务、改由现场网关连 emqx:1883。
+#
+# 端口：EMQX 1883(mqtt)/18083(dashboard) · data-platform 8080(http/ws)
+#       TDengine 6041 · PostgreSQL 5432 · Redis 6379
+services:
+  emqx:
+    image: emqx/emqx:5.8
+    container_name: fk-emqx
+    ports:
+      - '1883:1883' # MQTT
+      - '18083:18083' # Dashboard (admin/public)
+    volumes:
+      - emqx-data:/opt/emqx/data
+    healthcheck:
+      test: ['CMD', '/opt/emqx/bin/emqx', 'ctl', 'status']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  tdengine:
+    image: tdengine/tdengine:3.3.2.0
+    container_name: fk-tdengine
+    ports:
+      - '6041:6041' # REST
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - tdengine-data:/var/lib/taos
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: fk-postgres
+    environment:
+      POSTGRES_USER: kanban
+      POSTGRES_PASSWORD: kanban
+      POSTGRES_DB: kanban
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kanban']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: fk-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+
+  data-platform:
+    build:
+      context: ../packages/data-platform
+      dockerfile: ../../docker/Dockerfile.data-platform
+    container_name: fk-data-platform
+    environment:
+      STORAGE: real
+      HTTP_PORT: '8080'
+      MQTT_ENABLED: 'true'
+      MQTT_URL: mqtt://emqx:1883
+      REDIS_URL: redis://redis:6379
+      PG_URL: postgres://kanban:kanban@postgres:5432/kanban
+      TDENGINE_URL: http://tdengine:6041
+      MES_MODE: mock # 接真实 MES 改为 rest 并配 MES_BASE_URL/MES_API_KEY
+    ports:
+      - '8080:8080'
+    depends_on:
+      emqx:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  # 仿真边缘网关：演示用；接真实设备时删除本服务
+  edge-gateway:
+    build:
+      context: ../packages/edge-gateway
+      dockerfile: ../../docker/Dockerfile.edge-gateway
+    container_name: fk-edge-gateway
+    environment:
+      GATEWAY_MODE: simulator
+      MQTT_URL: mqtt://emqx:1883
+      FACTORY_ID: F01
+      ZONE_ID: Z01
+      SIM_SPEED: '0.1'
+    depends_on:
+      emqx:
+        condition: service_healthy
+
+volumes:
+  emqx-data:
+  tdengine-data:
+  pg-data:
+  redis-data:

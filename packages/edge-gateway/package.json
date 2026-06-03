@@ -1,0 +1,24 @@
+{
+  "name": "factory-kanban-edge-gateway",
+  "version": "1.0.0",
+  "description": "工厂生产看板边缘采集网关 —— 多协议采集、规范化、离线补传、MQTT 上报",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.0"
+  },
+  "optionalDependencies": {
+    "modbus-serial": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.2"
+  }
+}

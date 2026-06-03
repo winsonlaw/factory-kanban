@@ -8,13 +8,15 @@ import { DispatchView } from './views/DispatchView'
 import { DirectorView } from './views/DirectorView'
 import { ShowcaseView } from './views/ShowcaseView'
 import { startMockUpdater } from './utils/mock-updater'
+import { startLiveFeed } from './utils/live-feed'
 
 export default function App() {
   const { activeLineId, roleView } = useKanban()
   const { current: t } = useTheme()
 
   useEffect(() => {
-    const stop = startMockUpdater()
+    // 配置了 VITE_WS_URL 则接入实时后端，否则回退内置 mock 演示
+    const stop = startLiveFeed() ?? startMockUpdater()
     return stop
   }, [])
 
