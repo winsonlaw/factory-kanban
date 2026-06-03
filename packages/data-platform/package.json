@@ -1,0 +1,28 @@
+{
+  "name": "factory-kanban-data-platform",
+  "version": "1.0.0",
+  "description": "工厂生产看板中心数据平台 —— MQTT 接入、OEE/Pacing 计算、MES 对接、WebSocket 推送",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/contracts/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "@fastify/websocket": "^11.0.0",
+    "fastify": "^5.0.0",
+    "ioredis": "^5.4.0",
+    "mqtt": "^5.10.0",
+    "pg": "^8.13.0",
+    "undici": "^6.21.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.2"
+  }
+}
