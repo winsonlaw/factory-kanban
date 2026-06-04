@@ -16,6 +16,7 @@ import { mesOrderChangeNoticeSchema } from './contracts/schemas.js'
 import { registerConfigApi } from './config-domain/api.js'
 import { registerAuth } from './auth/api.js'
 import { UserStore } from './auth/store.js'
+import { generateDailyHistory } from './history/daily.js'
 import type { ConfigStore } from './config-domain/store.js'
 import type { Aggregator } from './state/aggregator.js'
 import type { HistoryStore } from './state/history.js'
@@ -93,6 +94,24 @@ export class ServerApp {
       return this.history.lineOee(lineId)
     })
     this.fastify.get('/api/shift/summary', async () => this.history.shiftSummary())
+
+    // 日级历史（老板 H5 趋势页）：近 N 天日报，今日实时、历史日确定性派生
+    this.fastify.get('/api/history/daily', async (req) => {
+      const { days } = req.query as { days?: string }
+      const w = this.agg.buildSnapshot()
+      const exec = this.agg.execSummary()
+      const dailyTarget = w.lines.reduce((s, l) => s + l.targetCount, 0)
+      const output = w.lines.reduce((s, l) => s + l.passCount, 0)
+      const oee = w.lines.length ? w.lines.reduce((s, l) => s + l.oee, 0) / w.lines.length : 0
+      const goodRate = w.lines.length ? w.lines.reduce((s, l) => s + l.goodRate, 0) / w.lines.length : 1
+      return generateDailyHistory(Number(days) || 30, dailyTarget, w.costPerUnit, {
+        outputQty: output, oee, goodRate,
+        downtimeLossAmount: exec.downtimeLossAmount, qualityLossAmount: exec.qualityLossAmount
+      })
+    })
+
+    // 本班实时趋势（车间级）
+    this.fastify.get('/api/history/workshop', async () => this.history.workshopTrend())
 
     // 通用 IoT 设备状态（工业+家电+传感统一可查）。公开运营数据。
     this.fastify.get('/api/devices', async (req) => {

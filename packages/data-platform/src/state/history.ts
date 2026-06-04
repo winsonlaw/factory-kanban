@@ -33,9 +33,16 @@ export interface ShiftSummaryRow {
 
 const CAP = 500 // 每序列最多保留采样数
 
+export interface WorkshopSample {
+  ts: number
+  outputQty: number // 全车间累计产量
+  oee: number // 综合 OEE
+}
+
 export class HistoryStore {
   private lineHist = new Map<string, LineSample[]>()
   private stationHist = new Map<string, StationSample[]>()
+  private workshopSeries: WorkshopSample[] = []
   private latest: WorkshopData | null = null
   private lastTs = 0
 
@@ -44,7 +51,11 @@ export class HistoryStore {
     this.latest = w
     if (now - this.lastTs < 10_000) return
     this.lastTs = now
+    let totalOutput = 0
+    let oeeSum = 0
     for (const l of w.lines) {
+      totalOutput += l.passCount
+      oeeSum += l.oee
       push(this.lineHist, l.id, {
         ts: now, oee: l.oee, availability: l.availability, performance: l.performance,
         goodRate: l.goodRate, passCount: l.passCount
@@ -55,6 +66,13 @@ export class HistoryStore {
         })
       }
     }
+    this.workshopSeries.push({ ts: now, outputQty: totalOutput, oee: w.lines.length ? oeeSum / w.lines.length : 0 })
+    if (this.workshopSeries.length > CAP) this.workshopSeries.shift()
+  }
+
+  /** 本班实时趋势（车间级，内存）。 */
+  workshopTrend(): WorkshopSample[] {
+    return this.workshopSeries
   }
 
   /** 某产线 OEE 历史趋势。 */

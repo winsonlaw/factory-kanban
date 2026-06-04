@@ -63,3 +63,21 @@ export interface ExecSummary {
   currentKw: number
   energyKwhToday: number
 }
+
+export interface DailyRow {
+  date: string
+  outputQty: number
+  targetQty: number
+  attainment: number
+  oee: number
+  goodRate: number
+  downtimeLossAmount: number
+  qualityLossAmount: number
+  partial?: boolean
+}
+
+export interface WorkshopSample {
+  ts: number
+  outputQty: number
+  oee: number
+}
