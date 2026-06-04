@@ -26,6 +26,7 @@ factory-kanban/
 ├── packages/
 │   ├── display-app/        # 大屏展示应用（Electron + Capacitor）
 │   ├── admin-web/          # 管理后台（React + Ant Design）
+│   ├── boss-h5/            # 老板/管理层 H5 经营视角（React + antd-mobile）
 │   ├── data-platform/      # 中心数据平台（Node.js + Fastify）
 │   └── edge-gateway/       # 边缘采集服务
 ├── docker/                 # Docker Compose 一键部署
@@ -151,6 +152,8 @@ cd packages/edge-gateway && npm install && SIM_SPEED=0.05 npm start
 cd packages/display-app && VITE_WS_URL=ws://localhost:8080/ws/workshop/W01 npm run dev
 # 管理后台（配置产线/站位/采集服务/通讯块/数据块）
 cd packages/admin-web && npm install && npm run dev   # http://localhost:5174
+# 老板/管理层 H5 经营视角（手机/浏览器）
+cd packages/boss-h5 && npm install && VITE_API_BASE=http://localhost:8080 npm run dev  # http://localhost:5175
 ```
 
 详见 [docs/后端运行指南.md](docs/后端运行指南.md)、[docs/管理后台设计.md](docs/管理后台设计.md)。

@@ -39,6 +39,7 @@ interface StationState {
   consecutiveDefect?: string
   hourCounts: Map<number, number> // 绝对小时索引 → 该小时产量
   runningMs: number // 累计运行时间（处于运行态的真实时长）
+  downMs: number // 累计停机/报警时长（金额化停机损失）
   observeStartMs: number // 首次收到该站遥测的时刻（可用率分母）
   lastTs: number
 }
@@ -76,6 +77,7 @@ function initStation(def: StationDef): StationState {
     consecutiveFail: 0,
     hourCounts: new Map(),
     runningMs: 0,
+    downMs: 0,
     observeStartMs: 0,
     lastTs: Date.now()
   }
@@ -147,9 +149,9 @@ export class Aggregator {
 
     // 运行时间累计：上一次到现在若处于运行态则计入（真实时钟）
     if (st.observeStartMs === 0) st.observeStartMs = t.timestamp
-    if (st.status === EquipmentStatusCode.Running) {
-      st.runningMs += Math.max(0, t.timestamp - st.lastTs)
-    }
+    const gap = Math.max(0, t.timestamp - st.lastTs)
+    if (st.status === EquipmentStatusCode.Running) st.runningMs += gap
+    else if (st.status === EquipmentStatusCode.Stopped || st.status === EquipmentStatusCode.Alarm) st.downMs += gap
     st.lastTs = t.timestamp
     st.status = t.equipmentStatus
     st.passCount += t.passCount
@@ -457,4 +459,58 @@ export class Aggregator {
     }
     return out
   }
+
+  /**
+   * 经营汇总（老板 H5 视角）—— 金额化产值与损失。
+   * costPerUnit 既作单件产值也作单件成本（演示单一费率）。
+   */
+  execSummary(now = Date.now()): ExecSummary {
+    const cost = this.def.costPerUnit
+    let outputQty = 0
+    let targetQty = 0
+    let failQty = 0
+    let downLossQty = 0
+    for (const ls of this.lines.values()) {
+      const last = [...ls.stations.values()].at(-1)
+      outputQty += last?.passCount ?? 0
+      failQty += last?.failCount ?? 0
+      targetQty += ls.def.targetCount
+      const downMs = last?.downMs ?? 0
+      if (ls.def.taktSec > 0) downLossQty += downMs / 1000 / ls.def.taktSec // 停机损失产能
+    }
+    // 停机原因 Top（取报警级，已持续时长）
+    const w = this.buildSnapshot(now)
+    const reasons = new Map<string, number>() // message → 累计小时
+    for (const a of w.alarms.filter((x) => x.level === 'alarm')) {
+      reasons.set(a.message, (reasons.get(a.message) ?? 0) + (now - a.startTs) / 3_600_000)
+    }
+    const avgTaktSec = 18
+    const downtimeTopReasons = [...reasons.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([reason, hours]) => ({
+        reason,
+        hours: Math.round(hours * 10) / 10,
+        amount: Math.round((hours * 3600 / avgTaktSec) * cost)
+      }))
+
+    return {
+      todayOutputValue: Math.round(outputQty * cost),
+      targetValue: Math.round(targetQty * cost),
+      attainment: targetQty > 0 ? outputQty / targetQty : 0,
+      downtimeLossAmount: Math.round(downLossQty * cost),
+      qualityLossAmount: Math.round(failQty * cost),
+      downtimeTopReasons
+    }
+  }
+}
+
+/** 经营汇总（不含能耗；能耗由 server 从设备状态库补充）。 */
+export interface ExecSummary {
+  todayOutputValue: number
+  targetValue: number
+  attainment: number
+  downtimeLossAmount: number
+  qualityLossAmount: number
+  downtimeTopReasons: { reason: string; hours: number; amount: number }[]
 }

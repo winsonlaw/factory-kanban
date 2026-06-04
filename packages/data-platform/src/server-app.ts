@@ -100,6 +100,13 @@ export class ServerApp {
       return this.deviceState.list({ zoneId, deviceType })
     })
     this.fastify.get('/api/devices/summary', async () => this.deviceState.summary())
+
+    // 经营汇总（老板 H5）：金额化产值/损失 + IoT 能耗
+    this.fastify.get('/api/exec/summary', async () => {
+      const exec = this.agg.execSummary()
+      const energy = this.deviceState.energy()
+      return { ...exec, ...energy }
+    })
     this.fastify.get('/api/devices/:id', async (req, reply) => {
       const { id } = req.params as { id: string }
       const d = this.deviceState.get(id)

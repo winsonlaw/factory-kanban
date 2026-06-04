@@ -56,6 +56,19 @@ export class DeviceStateStore {
     return { ...d, online: Date.now() - d.lastTs < 60_000 }
   }
 
+  /** 能耗汇总 —— 聚合 IoT 设备的实时功率与累计电量（老板 H5 能耗卡）。 */
+  energy(): { currentKw: number; energyKwhToday: number } {
+    let watts = 0
+    let kwh = 0
+    for (const d of this.devices.values()) {
+      const p = d.metrics['powerW']
+      if (typeof p === 'number') watts += p
+      const e = d.metrics['energyKwh']
+      if (typeof e === 'number') kwh += e
+    }
+    return { currentKw: Math.round(watts / 10) / 100, energyKwhToday: Math.round(kwh * 10) / 10 }
+  }
+
   /** 设备总数 + 在线数（概览）。 */
   summary(): { total: number; online: number; byType: Record<string, number> } {
     const now = Date.now()
