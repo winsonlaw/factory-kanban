@@ -91,7 +91,7 @@ function hhmmss(ts: number): string {
 }
 
 export class Aggregator {
-  readonly shiftStartTs: number
+  shiftStartTs: number
   private lines = new Map<string, LineState>()
   private materialAlerts: MaterialAlert[] = []
   private monthBaseActual: number
@@ -137,6 +137,37 @@ export class Aggregator {
     }
     for (const id of [...this.lines.keys()]) if (!seenLines.has(id)) this.lines.delete(id)
     this.dirty = true
+  }
+
+  /**
+   * 班次自动滚动 —— 运行超过一个班次时长则清零重开,产量永不溢出目标。
+   * 完成班次的产量累加进月累计。每个 tick 调用一次。
+   */
+  maybeRollover(now = Date.now()): boolean {
+    const shiftMs = this.def.shiftDurationH * 3_600_000
+    if (now - this.shiftStartTs < shiftMs) return false
+    let shiftGood = 0
+    for (const ls of this.lines.values()) {
+      shiftGood += [...ls.stations.values()].at(-1)?.passCount ?? 0
+      ls.alarms.clear()
+      ls.changeover = undefined
+      for (const st of ls.stations.values()) {
+        st.passCount = 0
+        st.failCount = 0
+        st.runningMs = 0
+        st.downMs = 0
+        st.observeStartMs = 0
+        st.lastTs = now
+        st.hourCounts.clear()
+        st.defects.clear()
+        st.consecutiveFail = 0
+        st.consecutiveDefect = undefined
+      }
+    }
+    this.monthBaseActual += shiftGood // 完成班次计入月累计
+    this.shiftStartTs = now
+    this.dirty = true
+    return true
   }
 
   // ───────────── 摄入 ─────────────

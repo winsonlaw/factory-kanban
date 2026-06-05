@@ -48,6 +48,7 @@ async function main(): Promise<void> {
 
   // 快照计算 + 广播节流循环
   const tick = setInterval(() => {
+    if (agg.maybeRollover()) console.log('[shift] 班次滚动，产量清零重开')
     if (topoDirty) {
       topoDirty = false
       agg.applyTopology(buildWorkshopDef(configStore, 'W01'))
